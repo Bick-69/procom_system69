@@ -1,0 +1,56 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container mt-4 d-flex justify-content-center">
+    <div class="card shadow p-4" style="width: 600px;">
+        <h3 class="fw-bold mb-3 text-primary"><i class="bi bi-box-arrow-in-down"></i> ຮັບສິນຄ້າເຂົ້າຄັງ (Import Stock)</h3>
+        <hr>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="fw-bold">ຜູ້ສະໜອງ (Supplier):</label>
+                <select name="sup_id" class="form-select" required>
+                    <option value="">-- ເລືອກຜູ້ສະໜອງ --</option>
+                    {% for sup in suppliers %}
+                        <option value="{{ sup.sup_id }}">{{ sup.company_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="fw-bold">ສິນຄ້າ (Product):</label>
+                <select name="pro_id" class="form-select" required>
+                    <option value="">-- ເລືອກສິນຄ້າ --</option>
+                    {% for pro in products %}
+                        <option value="{{ pro.pro_id }}">{{ pro.pro_name }} (ມີຢູ່: {{ pro.qty }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="fw-bold">ຈຳນວນນຳເຂົ້າ (Qty):</label>
+                    <input type="number" name="qty" class="form-control" min="1" value="1" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="fw-bold">ລາຄາຕົ້ນທຶນ/ຊິ້ນ (Price):</label>
+                    <input type="number" step="0.01" name="price" class="form-control" min="0" required placeholder="ຕົວຢ່າງ: 150000">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 fs-5 mt-2">
+                <i class="bi bi-save"></i> ບັນທຶກການນຳເຂົ້າ
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -15,6 +15,11 @@
             <div class="col-6 text-end">{{ sale.sale_date|date:"d/m/Y H:i" }}</div>
             <div class="col-6 text-start text-muted">ຜູ້ຂາຍ:</div>
             <div class="col-6 text-end">{{ sale.emp.emp_name }}</div>
+            
+            {% if sale.cus %}
+            <div class="col-6 text-start text-muted">ລູກຄ້າ:</div>
+            <div class="col-6 text-end">{{ sale.cus.cus_name }}</div>
+            {% endif %}
         </div>
 
         <table class="table table-sm table-borderless small mb-4">
@@ -37,10 +42,21 @@
         </table>
 
         <div class="border-top pt-3">
-            <div class="d-flex justify-content-between fs-4 fw-bold text-dark">
+            <div class="d-flex justify-content-between fs-5 fw-bold text-dark mb-2">
                 <span>ລວມທັງໝົດ:</span>
                 <span class="text-primary">{{ sale.total_amount|floatformat:0 }} LAK</span>
             </div>
+            
+            {% if payment_info %}
+            <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>ຮັບເງິນມາ:</span>
+                <span>{{ payment_info.amount_paid|floatformat:0 }} LAK</span>
+            </div>
+            <div class="d-flex justify-content-between small fw-bold text-danger">
+                <span>ເງິນທອນ:</span>
+                <span>{{ payment_info.change_amount|floatformat:0 }} LAK</span>
+            </div>
+            {% endif %}
         </div>
 
         <div class="text-center mt-5 no-print">
@@ -52,7 +68,7 @@
             </a>
         </div>
         
-        <p class="text-center text-muted small mt-4 opacity-50 italic">ຂອບໃຈທີ່ໃຊ້ບໍລິການ</p>
+        <p class="text-center text-muted small mt-4 opacity-50 fst-italic">ຂອບໃຈທີ່ໃຊ້ບໍລິການ</p>
     </div>
 </div>
 
@@ -61,6 +77,6 @@
         .navbar, .no-print { display: none !important; }
         body { background: white !important; }
         .card { box-shadow: none !important; width: 100% !important; margin-top: 0 !important; }
-    </div>
+    }
 </style>
 {% endblock %}

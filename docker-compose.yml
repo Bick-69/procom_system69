@@ -4,7 +4,7 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: procom_db
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: 1111111a
     ports:
       - "3307:3306"
     volumes:

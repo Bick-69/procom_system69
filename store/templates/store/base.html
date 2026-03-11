@@ -50,17 +50,30 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="/"><i class="bi bi-laptop me-2"></i>PROCOM POS</a>
+            
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+                {% if shop and shop.logo %}
+                    <img src="{{ shop.logo.url }}" alt="Shop Logo" style="height: 40px; width: 40px; object-fit: cover; border-radius: 8px;" class="me-2 bg-white p-1">
+                    {{ shop.shop_name }}
+                {% else %}
+                    <i class="bi bi-laptop me-2"></i>PROCOM POS
+                {% endif %}
+            </a>
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-speedometer2"></i> ໜ້າຫຼັກ</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'pos' %}"><i class="bi bi-cart4"></i> ຂາຍສິນຄ້າ</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'product_list' %}"><i class="bi bi-box-seam"></i> ຄັງສິນຄ້າ</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'sales_report' %}"><i class="bi bi-graph-up-arrow"></i> ລາຍງານການຂາຍ</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'claim_list' %}"><i class="bi bi-tools"></i> ເຄມສິນຄ້າ</a></li>
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-speedometer2"></i> ໜ້າຫຼັກ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'pos' %}"><i class="bi bi-cart4"></i> ຂາຍສິນຄ້າ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'import_stock' %}"><i class="bi bi-box-arrow-in-down"></i> ຮັບເຂົ້າສິນຄ້າ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'product_list' %}"><i class="bi bi-box-seam"></i> ຄັງສິນຄ້າ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'claim_list' %}"><i class="bi bi-tools"></i> ເຄມສິນຄ້າ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'sales_report' %}"><i class="bi bi-graph-up-arrow"></i> ລາຍງານການຂາຍ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'shop_settings' %}"><i class="bi bi-gear"></i> ຕັ້ງຄ່າຮ້ານ</a></li>
+                    </ul>
                 </ul>
                 <div class="d-flex align-items-center text-white">
                     <i class="bi bi-person-circle me-2"></i> Admin

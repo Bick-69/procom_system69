@@ -1,0 +1,51 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container mt-5 d-flex justify-content-center">
+    <div class="card shadow p-4" style="width: 500px;">
+        <h3 class="text-center fw-bold">⚙️ ຕັ້ງຄ່າຂໍ້ມູນຮ້ານ (Shop Info)</h3>
+        <hr>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="text-center mb-4">
+                {% if shop.logo %}
+                    <img src="{{ shop.logo.url }}" alt="Shop Logo" class="img-thumbnail rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-light d-inline-flex justify-content-center align-items-center rounded-circle" style="width: 150px; height: 150px;">
+                        <span class="text-muted">No Logo</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label>ອັບໂຫຼດ Logo ໃໝ່:</label>
+                <input type="file" name="logo" class="form-control" accept="image/*">
+            </div>
+
+            <div class="mb-3">
+                <label>ຊື່ຮ້ານ (Shop Name):</label>
+                <input type="text" name="shop_name" class="form-control" value="{{ shop.shop_name }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label>ເບີໂທ (Telephone):</label>
+                <input type="text" name="tel" class="form-control" value="{{ shop.tel }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label>ທີ່ຢູ່ (Address):</label>
+                <textarea name="address" class="form-control" rows="3" required>{{ shop.address }}</textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">💾 ບັນທຶກການຕັ້ງຄ່າ</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

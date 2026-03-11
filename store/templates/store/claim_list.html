@@ -1,6 +1,6 @@
 {% extends 'store/base.html' %}
 {% block content %}
-<div class="container">
+<div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold"><i class="bi bi-tools me-2"></i> ລາຍການເຄມສິນຄ້າ</h2>
         <a href="{% url 'add_claim' %}" class="btn btn-primary rounded-pill shadow-sm">
@@ -24,26 +24,44 @@
                 <tbody>
                     {% for c in claims %}
                     <tr>
-                        <td>{{ c.claim_date|date:"d/m/Y" }}</td>
-                        <td class="fw-bold">{{ c.claim_id }}</td>
-                        <td>{{ c.pro.pro_name }}</td>
-                        <td>{{ c.cus.cus_name }}</td>
+                        <td>{{ c.claim_date|date:"d/m/Y H:i" }}</td>
+                        <td class="fw-bold text-primary">{{ c.claim_id }}</td>
+                        
+                        <td>{{ c.sale_detail.pro.pro_name }}</td>
+                        
                         <td>
-                            {% if c.status == 'Processing' %}
-                                <span class="badge bg-warning text-dark px-3 rounded-pill">ກຳລັງດຳເນີນການ</span>
-                            {% elif c.status == 'Completed' %}
-                                <span class="badge bg-success px-3 rounded-pill">ສຳເລັດແລ້ວ</span>
+                            {% if c.sale_detail.sale.cus %}
+                                {{ c.sale_detail.sale.cus.cus_name }}
                             {% else %}
-                                <span class="badge bg-danger px-3 rounded-pill">ຍົກເລີກ</span>
+                                <span class="text-muted fst-italic">ລູກຄ້າທົ່ວໄປ</span>
                             {% endif %}
                         </td>
+                        
                         <td>
-                            <button class="btn btn-sm btn-outline-primary rounded-pill">ອັບເດດ</button>
+                        {% if c.status == 'Processing' %}
+                            <a href="{% url 'update_claim_status' c.claim_id %}" 
+                            class="btn btn-sm btn-outline-success rounded-pill shadow-sm"
+                            onclick="return confirm('ຕ້ອງການປ່ຽນສະຖານະເຄມນີ້ເປັນ ສຳເລັດແລ້ວ ຫຼື ບໍ່?');">
+                            <i class="bi bi-check-circle"></i> ສຳເລັດແລ້ວ</a>
+                        {% else %}
+                            <a href="{% url 'update_claim_status' c.claim_id %}" 
+                            class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm"
+                            onclick="return confirm('ຕ້ອງການປ່ຽນສະຖານະເຄມນີ້ກັບໄປເປັນ ກຳລັງດຳເນີນການ ຫຼື ບໍ່?');">
+                            <i class="bi bi-arrow-counterclockwise"></i> ຍົກເລີກ</a>
+                        {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill">
+                                <i class="bi bi-pencil-square"></i> ອັບເດດ
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">ຍັງບໍ່ມີລາຍການເຄມສິນຄ້າ</td>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            ຍັງບໍ່ມີລາຍການເຄມສິນຄ້າ
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

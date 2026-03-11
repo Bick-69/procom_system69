@@ -12,4 +12,9 @@ urlpatterns = [
     path('report/', views.sales_report, name='sales_report'),
     path('claims/', views.claim_list, name='claim_list'),
     path('claims/add/', views.add_claim, name='add_claim'),
+    path('remove-from-cart/<str:pro_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('shop-settings/', views.shop_settings, name='shop_settings'),
+    path('import-stock/', views.import_stock, name='import_stock'),
+    path('claims/update/<str:claim_id>/', views.update_claim_status, name='update_claim_status'),
+    path('products/add/', views.add_product, name='add_product'),
 ]

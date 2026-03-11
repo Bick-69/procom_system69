@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -62,6 +63,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'store.context_processors.shop_context',
             ],
         },
     },
@@ -78,7 +80,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'procom_db',       # ตรงกับใน docker-compose
         'USER': 'root',
-        'PASSWORD': 'rootpassword',# ตรงกับ MYSQL_ROOT_PASSWORD ใน docker-compose
+        'PASSWORD': '1111111a',# ตรงกับ MYSQL_ROOT_PASSWORD ใน docker-compose
         'HOST': 'db',              # <--- สำคัญมาก! ต้องใช้คำว่า 'db'
         'PORT': '3306',
     }
@@ -119,6 +121,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
