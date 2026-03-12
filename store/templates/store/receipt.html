@@ -1,82 +1,116 @@
 {% extends 'store/base.html' %}
 {% block content %}
-<div class="container d-flex justify-content-center">
-    <div class="card shadow-sm border-0 p-4" style="width: 450px; background-color: #fff;">
-        <div class="text-center mb-4">
-            <h3 class="fw-bold text-dark">PROCOM SYSTEM</h3>
-            <p class="text-muted mb-0 small">ໃບບິນຮັບເງິນ / Receipt</p>
-            <hr class="border-secondary opacity-25">
-        </div>
-
-        <div class="row small mb-3">
-            <div class="col-6 text-start text-muted">ເລກທີບິນ:</div>
-            <div class="col-6 text-end fw-bold">{{ sale.sale_id }}</div>
-            <div class="col-6 text-start text-muted">ວັນທີ:</div>
-            <div class="col-6 text-end">{{ sale.sale_date|date:"d/m/Y H:i" }}</div>
-            <div class="col-6 text-start text-muted">ຜູ້ຂາຍ:</div>
-            <div class="col-6 text-end">{{ sale.emp.emp_name }}</div>
-            
-            {% if sale.cus %}
-            <div class="col-6 text-start text-muted">ລູກຄ້າ:</div>
-            <div class="col-6 text-end">{{ sale.cus.cus_name }}</div>
-            {% endif %}
-        </div>
-
-        <table class="table table-sm table-borderless small mb-4">
-            <thead class="border-bottom border-top">
-                <tr>
-                    <th class="py-2">ລາຍການ</th>
-                    <th class="py-2 text-center">ຈຳນວນ</th>
-                    <th class="py-2 text-end">ລາຄາລວມ</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in details %}
-                <tr>
-                    <td class="py-1">{{ item.pro.pro_name }}</td>
-                    <td class="py-1 text-center">x{{ item.qty }}</td>
-                    <td class="py-1 text-end">{{ item.price|floatformat:0 }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="border-top pt-3">
-            <div class="d-flex justify-content-between fs-5 fw-bold text-dark mb-2">
-                <span>ລວມທັງໝົດ:</span>
-                <span class="text-primary">{{ sale.total_amount|floatformat:0 }} LAK</span>
-            </div>
-            
-            {% if payment_info %}
-            <div class="d-flex justify-content-between small text-muted mb-1">
-                <span>ຮັບເງິນມາ:</span>
-                <span>{{ payment_info.amount_paid|floatformat:0 }} LAK</span>
-            </div>
-            <div class="d-flex justify-content-between small fw-bold text-danger">
-                <span>ເງິນທອນ:</span>
-                <span>{{ payment_info.change_amount|floatformat:0 }} LAK</span>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="text-center mt-5 no-print">
-            <button onclick="window.print()" class="btn btn-outline-dark rounded-pill me-2">
-                <i class="bi bi-printer me-2"></i> ພິມໃບບິນ
-            </button>
-            <a href="{% url 'pos' %}" class="btn btn-primary rounded-pill">
-                ຂາຍຕໍ່ <i class="bi bi-arrow-right ms-2"></i>
-            </a>
-        </div>
-        
-        <p class="text-center text-muted small mt-4 opacity-50 fst-italic">ຂອບໃຈທີ່ໃຊ້ບໍລິການ</p>
-    </div>
-</div>
-
 <style>
+    /* CSS ສຳລັບບິນສະລິບນ້ອຍ (Thermal Printer) */
+    .receipt-container {
+        max-width: 320px; /* ຂະໜາດຄວາມກວ້າງຂອງບິນ */
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: 'Noto Sans Lao', sans-serif;
+        color: #000;
+    }
+    .receipt-header { text-align: center; margin-bottom: 15px; }
+    .receipt-header img { max-width: 60px; margin-bottom: 10px; border-radius: 8px; }
+    .receipt-title { font-size: 1.2rem; font-weight: bold; margin: 0; }
+    .receipt-table { width: 100%; font-size: 0.9rem; margin-bottom: 15px; }
+    .receipt-table th, .receipt-table td { padding: 5px 0; border-bottom: 1px dashed #ccc; }
+    .receipt-table th { text-align: left; }
+    .receipt-table .text-right { text-align: right; }
+    .receipt-table .text-center { text-align: center; }
+    .receipt-summary { font-size: 0.95rem; margin-bottom: 20px; }
+    .receipt-summary div { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .receipt-summary .fw-bold { font-weight: bold; font-size: 1.1rem; }
+    .receipt-footer { text-align: center; font-size: 0.85rem; color: #555; border-top: 1px dashed #ccc; padding-top: 10px; }
+
+    /* ເຊື່ອງເມນູ ແລະ ປຸ່ມຕ່າງໆ ຕອນກົດສັ່ງພິມ (Print) */
     @media print {
-        .navbar, .no-print { display: none !important; }
-        body { background: white !important; }
-        .card { box-shadow: none !important; width: 100% !important; margin-top: 0 !important; }
+        body { background: #fff; }
+        nav, .btn-print-zone { display: none !important; }
+        .receipt-container { border: none; padding: 0; margin: 0; max-width: 100%; }
+        .container { padding: 0; margin: 0; }
     }
 </style>
+
+<div class="d-flex justify-content-center mb-4 btn-print-zone">
+    <button onclick="window.print()" class="btn btn-success me-2 px-4 rounded-pill shadow-sm">
+        <i class="bi bi-printer"></i> ພິມໃບບິນ
+    </button>
+    <a href="{% url 'pos' %}" class="btn btn-outline-secondary px-4 rounded-pill shadow-sm">
+        <i class="bi bi-arrow-left"></i> ກັບຄືນໜ້າຂາຍ
+    </a>
+</div>
+
+<div class="receipt-container shadow-sm">
+    <div class="receipt-header">
+        {% if shop and shop.logo %}
+            <img src="{{ shop.logo.url }}" alt="Shop Logo">
+        {% else %}
+            <i class="bi bi-shop fs-1 text-dark"></i>
+        {% endif %}
+        
+        <h2 class="receipt-title">{{ shop.shop_name|default:"PROCOM POS" }}</h2>
+        <div style="font-size: 0.85rem; color: #555; margin-top: 5px;">
+            {{ shop.address|default:"-" }}<br>
+            ໂທ: {{ shop.tel|default:"-" }}
+        </div>
+    </div>
+
+    <div style="font-size: 0.85rem; margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+        <div><strong>ບິນເລກທີ:</strong> {{ sale.sale_id }}</div>
+        <div><strong>ວັນທີ:</strong> {{ sale.sale_date|date:"d/m/Y H:i" }}</div>
+        <div><strong>ລູກຄ້າ:</strong> {% if sale.cus %}{{ sale.cus.cus_name }}{% else %}ລູກຄ້າທົ່ວໄປ{% endif %}</div>
+        <div><strong>ພະນັກງານ:</strong> {{ sale.emp.emp_name|default:"Admin" }}</div>
+    </div>
+
+    <table class="receipt-table">
+        <thead>
+            <tr>
+                <th>ລາຍການ</th>
+                <th class="text-center">ຈຳນວນ</th>
+                <th class="text-right">ລວມ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in details %}
+            <tr>
+                <td>
+                    {{ d.pro.pro_name }}<br>
+                    <small class="text-muted">{{ d.price|floatformat:"0g" }}</small>
+                </td>
+                <td class="text-center">{{ d.qty }}</td>
+                <td class="text-right">
+                    {% widthratio d.price 1 d.qty as item_total %}
+                    {{ item_total|floatformat:"0g" }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="receipt-summary">
+        <div>
+            <span>ລວມຍອດທັງໝົດ:</span>
+            <span class="fw-bold">{{ sale.total_amount|floatformat:"0g" }} ກີບ</span>
+        </div>
+        
+        {% if payment_info %}
+        <div class="mt-2 text-muted" style="font-size: 0.9rem;">
+            <span>ຮັບເງິນມາ:</span>
+            <span>{{ payment_info.amount_paid|floatformat:"0g" }} ກີບ</span>
+        </div>
+        <div class="text-muted" style="font-size: 0.9rem;">
+            <span>ເງິນທອນ:</span>
+            <span>{{ payment_info.change_amount|floatformat:"0g" }} ກີບ</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="receipt-footer">
+        *** ຂໍຂອບໃຈທີ່ໃຊ້ບໍລິການ ***<br>
+        ສິນຄ້າຊື້ແລ້ວບໍ່ຮັບປ່ຽນຄືນ (ຍົກເວັ້ນເຄມຕາມເງື່ອນໄຂ)
+    </div>
+</div>
 {% endblock %}

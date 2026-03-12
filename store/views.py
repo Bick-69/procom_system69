@@ -1,26 +1,80 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count
 from django.utils import timezone
 from django.contrib import messages
 from .models import Product, Sale, Claim, SaleDetail, Employee, Customer, ShopInfo, Supplier, StockImport, ImportDetail, Category, Brand, Unit
+
+# ຟັງຊັນເຂົ້າສູ່ລະບົບ (Login)
+def login_view(request):
+    # ຖ້າລັອກອິນແລ້ວ ໃຫ້ປັດໄປໜ້າຫຼັກເລີຍ
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        u = request.POST.get('username')
+        p = request.POST.get('password')
+        
+        # ກວດສອບຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານ
+        user = authenticate(request, username=u, password=p)
+        
+        if user is not None:
+            login(request, user)
+            messages.success(request, f'ຍິນດີຕ້ອນຮັບ {user.username} ເຂົ້າສູ່ລະບົບ!')
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ! ກະລຸນາລອງໃໝ່.')
+
+    # ສົ່ງໜ້າຮ້ານໄປສະແດງໂລໂກ້ຢູ່ໜ້າ Login (ຖ້າມີ)
+    shop = ShopInfo.objects.first()
+    return render(request, 'store/login.html', {'shop': shop})
+
+# ຟັງຊັນອອກຈາກລະບົບ (Logout)
+def logout_view(request):
+    logout(request)
+    messages.success(request, 'ທ່ານໄດ້ອອກຈາກລະບົບແລ້ວ.')
+    return redirect('login')
 
 # Dashboard
 def dashboard(request):
     total_products = Product.objects.count()
     total_sales_dict = Sale.objects.aggregate(Sum('total_amount'))
     total_sales = total_sales_dict['total_amount__sum'] or 0
+    total_orders = Sale.objects.count()
     total_claims = Claim.objects.filter(status='Processing').count()
+    
+    # ດຶງລາຍການຂາຍ 5 ລາຍການລ່າສຸດ ແລ້ວເກັບໄວ້ໃນ recent_sales ແລະ ສະແດງໃນ dashboard.html
+    recent_sales = Sale.objects.all().order_by('-sale_date')[:5]
+    
+    # ດຶງລາຍການສິນຄ້າທີ່ stock ຕໍ່ມານ້ອຍ ແລ້ວເກັັບໄວ້ໃນ low_stock_products ແລະ ສະແດງໃນ dashboard.html
+    low_stock_products = Product.objects.filter(qty__lt=5).order_by('qty')
+
     context = {
         'total_products': total_products,
         'total_sales': total_sales,
+        'total_orders': total_orders,
         'total_claims': total_claims,
+        'recent_sales': recent_sales,
+        'low_stock_products': low_stock_products,
     }
     return render(request, 'store/dashboard.html', context)
 
 # Product List
 def product_list(request):
-    products = Product.objects.all()
-    return render(request, 'store/product_list.html', {'products': products})
+    search_query = request.GET.get('search', '')
+    if search_query:
+        product = Product.objects.filter(
+            pro_name__icontains=search_query
+            ) | Product.objects.filter(
+                pro_id_icontains=search_query
+            )
+    else:
+        product = product = Product.objects.all()
+    return render(request=request, template_name='store/product_list.html',
+        context={'products': product,
+                'search_query': search_query
+        })
 
 def add_product(request):
     if request.method == "POST":
@@ -110,18 +164,24 @@ def add_claim(request):
 
 # POS Page (ຈັດການທັງສະແດງສິນຄ້າ ແລະ ຄິດໄລ່ເງິນລວມ)
 def pos(request):
-    products = Product.objects.filter(qty__gt=0)
-    customers = Customer.objects.all() # ດຶງລູກຄ້າທັງໝົດເພື່ອໃຊ້ໃນ POS
+    search_query = request.GET.get('search', '')
+    if search_query:
+        products = Product.objects.filter(pro_name__icontains=search_query, qty__gt=0)
+    else:
+        products = Product.objects.filter(qty__gt=0)
+        
+    customers = Customer.objects.all()
     cart = request.session.get('cart', {})
     
-    total_price = 0
-    for item in cart.values():
-        total_price += item['price'] * item['quantity']
+    total_price = sum(item['price'] * item['quantity'] for item in cart.values())
+    total_items = sum(item['quantity'] for item in cart.values())
         
     context = {
         'products': products,
         'customers': customers,
         'total_price': total_price,
+        'total_items': total_items,
+        'search_query': search_query,
     }
     return render(request, 'store/pos.html', context)
 
@@ -149,6 +209,7 @@ def add_to_cart(request, pro_id):
         
     return redirect('pos')
 
+# Remove from cart
 def remove_from_cart(request, pro_id):
     cart = request.session.get('cart', {})
     if str(pro_id) in cart:
@@ -191,7 +252,7 @@ def checkout(request):
         # ດຶງຂໍ້ມູນລູກຄ້າ ຖ້າມີ cus_id ແລະ ສ້າງ sale record ແລ້ວເກັບ sale_id ໄວ້
         customer = Customer.objects.filter(cus_id=cus_id).first() if cus_id else None
         
-        sale_id = f"S{int(timezone.now().timestamp())}"
+        sale_id = f"S{str(int(timezone.now().timestamp()))[-8:]}"
         
         # ສ້າງ sale record ແລ້ວເກັບ sale_id ໄວ້
         new_sale = Sale.objects.create(
@@ -348,3 +409,45 @@ def update_claim_status(request, claim_id):
         
     claim.save()
     return redirect('claim_list')
+
+# ຟັງຊັນສຳລັບແກ້ໄຂສິນຄ້າ
+def edit_product(request, pro_id):
+    product = get_object_or_404(Product, pro_id=pro_id)
+    
+    if request.method == "POST":
+        product.pro_name = request.POST.get('pro_name')
+        product.price_buy = float(request.POST.get('price_buy', 0))
+        product.price_sale = float(request.POST.get('price_sale', 0))
+        product.qty = int(request.POST.get('qty', 0))
+        
+        cat_id = request.POST.get('cat_id')
+        brand_id = request.POST.get('brand_id')
+        unit_id = request.POST.get('unit_id')
+        
+        product.cat = get_object_or_404(Category, cat_id=cat_id)
+        product.brand = get_object_or_404(Brand, brand_id=brand_id)
+        product.unit = get_object_or_404(Unit, unit_id=unit_id)
+        
+        product.save()
+        messages.success(request, f'ແກ້ໄຂຂໍ້ມູນສິນຄ້າ {product.pro_name} ສຳເລັດແລ້ວ!')
+        return redirect('product_list')
+
+    # ດຶງຂໍ້ມູນມາສະແດງໃນ Dropdown
+    categories = Category.objects.all()
+    brands = Brand.objects.all()
+    units = Unit.objects.all()
+
+    return render(request, 'store/edit_product.html', {
+        'product': product,
+        'categories': categories,
+        'brands': brands,
+        'units': units
+    })
+
+# ຟັງຊັນສຳລັບລຶບສິນຄ້າ
+def delete_product(request, pro_id):
+    product = get_object_or_404(Product, pro_id=pro_id)
+    pro_name = product.pro_name # ເກັບຊື່ໄວ້ສະແດງແຈ້ງເຕືອນກ່ອນລຶບ
+    product.delete()
+    messages.success(request, f'ລຶບສິນຄ້າ {pro_name} ອອກຈາກຄັງສຳເລັດແລ້ວ!')
+    return redirect('product_list')

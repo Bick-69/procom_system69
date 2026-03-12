@@ -1,0 +1,74 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container mt-4 d-flex justify-content-center">
+    <div class="card shadow p-4" style="width: 700px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="fw-bold text-primary mb-0"><i class="bi bi-pencil-square"></i> ແກ້ໄຂສິນຄ້າ (Edit Product)</h3>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm">ກັບຄືນໜ້າລາຍການ</a>
+        </div>
+        <hr>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="fw-bold">ລະຫັດສິນຄ້າ (ID):</label>
+                    <input type="text" class="form-control" value="{{ product.pro_id }}" disabled>
+                    <small class="text-muted">ລະຫັດບໍ່ສາມາດປ່ຽນໄດ້</small>
+                </div>
+                <div class="col-md-8">
+                    <label class="fw-bold">ຊື່ສິນຄ້າ (Product Name):</label>
+                    <input type="text" name="pro_name" class="form-control" value="{{ product.pro_name }}" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="fw-bold">ລາຄາຕົ້ນທຶນ (ຊື້):</label>
+                    <input type="number" step="0.01" name="price_buy" class="form-control" value="{{ product.price_buy }}" required min="0">
+                </div>
+                <div class="col-md-4">
+                    <label class="fw-bold">ລາຄາຂາຍ (ຂາຍ):</label>
+                    <input type="number" step="0.01" name="price_sale" class="form-control" value="{{ product.price_sale }}" required min="0">
+                </div>
+                <div class="col-md-4">
+                    <label class="fw-bold">ຈຳນວນໃນຄັງ:</label>
+                    <input type="number" name="qty" class="form-control" value="{{ product.qty }}" min="0" required>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <label class="fw-bold">ໝວດໝູ່ (Category):</label>
+                    <select name="cat_id" class="form-select" required>
+                        {% for c in categories %}
+                            <option value="{{ c.cat_id }}" {% if c.cat_id == product.cat.cat_id %}selected{% endif %}>{{ c.cat_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="fw-bold">ຍີ່ຫໍ້ (Brand):</label>
+                    <select name="brand_id" class="form-select" required>
+                        {% for b in brands %}
+                            <option value="{{ b.brand_id }}" {% if b.brand_id == product.brand.brand_id %}selected{% endif %}>{{ b.brand_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="fw-bold">ຫົວໜ່ວຍ (Unit):</label>
+                    <select name="unit_id" class="form-select" required>
+                        {% for u in units %}
+                            <option value="{{ u.unit_id }}" {% if u.unit_id == product.unit.unit_id %}selected{% endif %}>{{ u.unit_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 fs-5 rounded-pill shadow-sm">
+                <i class="bi bi-save"></i> ບັນທຶກການແກ້ໄຂ
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

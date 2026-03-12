@@ -1,43 +1,102 @@
 {% extends 'store/base.html' %}
-
 {% block content %}
-<div class="container-fluid">
-    <h2 class="fw-bold mb-4"><i class="bi bi-grid-1x2-fill me-2"></i> ພາບລວມລະບົບ</h2>
-    
-    <div class="row g-3">
-        <div class="col-md-4">
-            <div class="card bg-primary text-white p-3 h-100 shadow">
-                <div class="d-flex align-items-center">
-                    <div class="fs-1 me-3"><i class="bi bi-currency-dollar"></i></div>
+<div class="container mt-4">
+    <h2 class="fw-bold mb-4"><i class="bi bi-grid-1x2-fill me-2"></i> ແຜງຄວບຄຸມ (Dashboard)</h2>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="small opacity-75">ຍອດຂາຍລວມ</div>
-                        <h2 class="fw-bold mb-0">{{ total_sales|floatformat:0 }} <small class="fs-6">LAK</small></h2>
+                        <h6 class="text-white-50">ຍອດຂາຍທັງໝົດ</h6>
+                        <h3 class="fw-bold mb-0">{{ total_sales|floatformat:"0g" }} ກີບ</h3>
                     </div>
+                    <i class="bi bi-cash-stack fs-1"></i>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card bg-success text-white p-3 h-100 shadow">
-                <div class="d-flex align-items-center">
-                    <div class="fs-1 me-3"><i class="bi bi-box-seam"></i></div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="small opacity-75">ສິນຄ້າໃນລະບົບ</div>
-                        <h2 class="fw-bold mb-0">{{ total_products }} <small class="fs-6">ລາຍການ</small></h2>
+                        <h6 class="text-white-50">ສິນຄ້າໃນຄັງ</h6>
+                        <h3 class="fw-bold mb-0">{{ total_products }} ລາຍການ</h3>
                     </div>
+                    <i class="bi bi-box-seam fs-1"></i>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card bg-warning text-dark p-3 h-100 shadow">
-                <div class="d-flex align-items-center">
-                    <div class="fs-1 me-3"><i class="bi bi-tools"></i></div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-dark p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="small opacity-75 text-dark">ສິນຄ້າລໍຖ້າເຄມ</div>
-                        <h2 class="fw-bold mb-0">{{ total_claims }} <small class="fs-6">ລາຍການ</small></h2>
+                        <h6 class="text-dark-50">ລາຍການເຄມຄ້າງ</h6>
+                        <h3 class="fw-bold mb-0">{{ total_claims }} ລາຍການ</h3>
                     </div>
+                    <i class="bi bi-tools fs-1"></i>
                 </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-info text-white p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50">ບິນຂายທັງໝົດ</h6>
+                        <h3 class="fw-bold mb-0">{{ total_orders }} ບິນ</h3>
+                    </div>
+                    <i class="bi bi-receipt fs-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold">
+                    <i class="bi bi-clock-history me-2"></i> ລາຍການຂາຍລ່າສຸດ
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ລະຫັດບິນ</th>
+                                <th>ວັນທີ</th>
+                                <th>ລູกຄ້າ</th>
+                                <th>ຍອດລວມ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td class="fw-bold">#{{ sale.sale_id }}</td>
+                                <td>{{ sale.sale_date|date:"d/m/Y H:i" }}</td>
+                                <td>{% if sale.cus %}{{ sale.cus.cus_name }}{% else %}ລູກຄ້າທົ່ວໄປ{% endif %}</td>
+                                <td class="text-primary fw-bold">{{ sale.total_amount|floatformat:"0g" }} ກີບ</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center py-4">ຍັງບໍ່ມີລາຍການຂາຍ</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-bold text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i> ສິນຄ້າໃກ້ຈະໝົດ
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for p in low_stock_products %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ p.pro_name }}
+                        <span class="badge bg-danger rounded-pill">{{ p.qty }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-4 text-muted fst-italic">ບໍ່ມີສິນຄ້າໃກ້ໝົດ</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>
