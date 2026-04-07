@@ -1,5 +1,6 @@
 {% extends 'store/base.html' %}
 {% block content %}
+
 <div class="container-fluid px-0">
     <div class="row g-3"> <div class="col-xl-8 col-lg-7">
             <div class="card p-3 h-100"> <div class="d-flex justify-content-between align-items-center mb-3">
@@ -89,49 +90,80 @@
                 </div>
 
                 <div class="p-3 bg-white" style="box-shadow: 0 -5px 15px rgba(0,0,0,0.02); z-index: 10;">
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="fw-bold text-muted" style="font-size: 0.9rem;">ລວມທັງໝົດ:</span>
-                        <span class="fs-4 fw-bold" style="color: #4318ff; letter-spacing: -0.5px;">{{ total_price|default:0|floatformat:"0g" }} ກີບ</span>
-                    </div>
+    
+    <div class="mb-3 p-2" style="background-color: #f8fafc; border-radius: 12px; font-size: 0.85rem;">
+        <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">ລາຄາລວມ:</span>
+            <span class="fw-bold text-dark">{{ total_price|default:0|floatformat:"0g" }} ກີບ</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1 text-danger">
+            <span>ສ່ວນຫຼຸດ:</span>
+            <span id="display_discount">- 0 ກີບ</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1 text-primary">
+            <span>ພາສີ (VAT 7%):</span>
+            <span id="display_vat">0 ກີບ</span>
+        </div>
+        <hr class="my-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-muted">ລວມສຸດທິ:</span>
+            <span class="fs-4 fw-bold" id="display_grand_total" style="color: #4318ff; letter-spacing: -0.5px;">{{ total_price|default:0|floatformat:"0g" }} ກີບ</span>
+        </div>
+    </div>
 
-                    <form action="{% url 'checkout' %}" method="POST" id="checkout-form">
-                        {% csrf_token %}
-                        <div class="mb-2">
-                            <select name="cus_id" class="form-select form-select-sm border-0 fw-medium py-2" style="background-color: #f4f7fe; border-radius: 8px;">
-                                <option value="">-- ລູກຄ້າທົ່ວໄປ --</option>
-                                {% for c in customers %}
-                                    <option value="{{ c.cus_id }}">{{ c.cus_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="input-group input-group-sm" style="border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden;">
-                                <span class="input-group-text bg-white border-0 fw-bold" style="color: #4318ff;">₭</span>
-                                <input type="number" id="amount_paid" name="amount_paid" class="form-control border-0 shadow-none fw-bold" placeholder="ຮັບເງິນມາ..." required style="color: #2b3674; font-size: 1.1rem;">
-                            </div>
-                        </div>
+    <form action="{% url 'checkout' %}" method="POST" id="checkout-form">
+        {% csrf_token %}
+        
+        <div class="mb-2">
+            <select name="cus_id" class="form-select form-select-sm border-0 fw-medium py-2 shadow-none" style="background-color: #f4f7fe; border-radius: 8px;">
+                <option value="">-- ເລືອກລູກຄ້າ --</option>
+                {% for c in customers %}
+                    <option value="{{ c.cus_id }}">{{ c.cus_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-                        <div class="d-flex justify-content-between align-items-center mb-3 p-2" style="background-color: rgba(5, 205, 153, 0.1); border-radius: 10px;">
-                            <span class="fw-bold" style="color: #05cd99; font-size: 0.85rem;">ເງິນທອນ:</span>
-                            <span class="fs-5 fw-bold" id="change_amount" style="color: #05cd99; letter-spacing: -0.5px;">0 ກີບ</span>
-                        </div>
-
-                        <div class="row g-2">
-                            <div class="col-4">
-                                <a href="{% url 'clear_cart' %}" class="btn btn-sm w-100 fw-bold h-100 d-flex align-items-center justify-content-center" style="background-color: rgba(238, 93, 80, 0.1); color: #ee5d50; border-radius: 10px;">
-                                    ລ້າງ
-                                </a>
-                            </div>
-                            <div class="col-8">
-                                <button type="submit" id="btn-checkout" class="btn btn-sm btn-success w-100 fw-bold h-100 py-2 d-flex justify-content-center align-items-center" style="border-radius: 10px; font-size: 1rem; background-color: #05cd99; border-color: #05cd99; box-shadow: 0 4px 10px rgba(5, 205, 153, 0.2);" disabled>
-                                    <i class="bi bi-check-circle-fill me-2"></i> ຊຳລະເງິນ
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+        <div class="mb-2">
+            <select name="status" id="sale_status" class="form-select form-select-sm border-0 fw-bold py-2 shadow-none" style="background-color: #eef2ff; color: #4318ff; border-radius: 8px;">
+                <option value="Paid">ຂາຍສົດ (Invoice)</option>
+                <option value="Quotation">ໃບສະເໜີລາຄາ (Quotation)</option>
+            </select>
+        </div>
+        
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <div class="input-group input-group-sm" style="border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden;">
+                    <span class="input-group-text bg-white border-0 text-danger small">-%</span>
+                    <input type="number" id="discount_input" name="discount" class="form-control border-0 shadow-none fw-bold" placeholder="ສ່ວນຫຼຸດ..." value="0">
                 </div>
+            </div>
+            <div class="col-6" id="paid_section">
+                <div class="input-group input-group-sm" style="border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden;">
+                    <span class="input-group-text bg-white border-0 text-success small">₭</span>
+                    <input type="number" id="amount_paid" name="amount_paid" class="form-control border-0 shadow-none fw-bold" placeholder="ຮັບມາ...">
+                </div>
+            </div>
+        </div>
+
+        <div id="change_section" class="d-flex justify-content-between align-items-center mb-3 p-2" style="background-color: rgba(5, 205, 153, 0.1); border-radius: 10px;">
+            <span class="fw-bold" style="color: #05cd99; font-size: 0.85rem;">ເງິນທອນ:</span>
+            <span class="fs-5 fw-bold" id="change_amount" style="color: #05cd99; letter-spacing: -0.5px;">0 ກີບ</span>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-4">
+                <a href="{% url 'clear_cart' %}" class="btn btn-sm w-100 fw-bold h-100 d-flex align-items-center justify-content-center" style="background-color: rgba(238, 93, 80, 0.1); color: #ee5d50; border-radius: 10px;">
+                    ລ້າງ
+                </a>
+            </div>
+            <div class="col-8">
+                <button type="submit" id="btn-checkout" class="btn btn-sm btn-success w-100 fw-bold h-100 py-2 d-flex justify-content-center align-items-center" style="border-radius: 10px; font-size: 1rem; background-color: #05cd99; border-color: #05cd99; box-shadow: 0 4px 10px rgba(5, 205, 153, 0.2);" disabled>
+                    <i class="bi bi-check-circle-fill me-2"></i> ຢືນຢັນ
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
             </div>
         </div>
 
@@ -153,39 +185,63 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const totalAmount = {{ total_price|default:0 }};
-        const inputAmount = document.getElementById("amount_paid");
+        const subTotal = {{ total_price|default:0 }};
+        const discountInput = document.getElementById("discount_input");
+        const amountPaidInput = document.getElementById("amount_paid");
+        const saleStatus = document.getElementById("sale_status");
+        
+        const displayDiscount = document.getElementById("display_discount");
+        const displayVat = document.getElementById("display_vat");
+        const displayGrandTotal = document.getElementById("display_grand_total");
         const changeDisplay = document.getElementById("change_amount");
         const btnCheckout = document.getElementById("btn-checkout");
+        const changeSection = document.getElementById("change_section");
+        const paidSection = document.getElementById("paid_section");
 
-        inputAmount.addEventListener("input", function() {
-            let paid = parseFloat(this.value) || 0;
-            let change = paid - totalAmount;
+        function calculateAll() {
+            let discount = parseFloat(discountInput.value) || 0;
+            let totalAfterDiscount = subTotal - discount;
+            let vat = totalAfterDiscount * 0.07;
+            let grandTotal = totalAfterDiscount + vat;
+            let paid = parseFloat(amountPaidInput.value) || 0;
+            let change = paid - grandTotal;
 
-            if (totalAmount === 0) {
-                changeDisplay.textContent = "0 ກີບ";
-                btnCheckout.disabled = true;
-                return;
-            }
+            // ອັບເດດການສະແດງຜົນ Summary
+            displayDiscount.textContent = "- " + discount.toLocaleString() + " ກີບ";
+            displayVat.textContent = vat.toLocaleString() + " ກີບ";
+            displayGrandTotal.textContent = grandTotal.toLocaleString() + " ກີບ";
 
-            if (change < 0) {
-                changeDisplay.textContent = "ເງິນບໍ່ພໍ!";
-                changeDisplay.style.color = "#ee5d50"; 
-                changeDisplay.parentElement.style.backgroundColor = "rgba(238, 93, 80, 0.1)";
-                btnCheckout.disabled = true;
+            // ກວດສອບສະຖານະ
+            if (saleStatus.value === "Quotation") {
+                changeSection.style.display = "none";
+                paidSection.style.opacity = "0.5";
+                amountPaidInput.disabled = true;
+                btnCheckout.disabled = subTotal <= 0;
             } else {
-                changeDisplay.textContent = change.toLocaleString('lo-LA') + " ກີບ";
-                changeDisplay.style.color = "#05cd99";
-                changeDisplay.parentElement.style.backgroundColor = "rgba(5, 205, 153, 0.1)";
-                btnCheckout.disabled = false;
+                changeSection.style.display = "flex";
+                paidSection.style.opacity = "1";
+                amountPaidInput.disabled = false;
+                
+                if (subTotal === 0) {
+                    btnCheckout.disabled = true;
+                } else if (change < 0) {
+                    changeDisplay.textContent = "ເງິນບໍ່ພໍ!";
+                    changeDisplay.style.color = "#ee5d50";
+                    btnCheckout.disabled = true;
+                } else {
+                    changeDisplay.textContent = change.toLocaleString() + " ກີບ";
+                    changeDisplay.style.color = "#05cd99";
+                    btnCheckout.disabled = false;
+                }
             }
-        });
-        
-        if (totalAmount > 0 && (parseFloat(inputAmount.value) || 0) >= totalAmount) {
-            btnCheckout.disabled = false;
-        } else {
-            btnCheckout.disabled = true;
         }
+
+        discountInput.addEventListener("input", calculateAll);
+        amountPaidInput.addEventListener("input", calculateAll);
+        saleStatus.addEventListener("change", calculateAll);
+
+        // ເລີ່ມໄລ່ເງິນຕອນໂຫຼດໜ້າ
+        calculateAll();
     });
 </script>
 {% endblock %}

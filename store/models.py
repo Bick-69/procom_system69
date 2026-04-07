@@ -101,9 +101,16 @@ class Sale(models.Model):
     sale_id = models.CharField(max_length=10, primary_key=True)
     sale_date = models.DateTimeField(auto_now_add=True)
     total_amount = models.FloatField()
-    status = models.CharField(max_length=20, default='Paid')
     cus = models.ForeignKey(Customer, on_delete=models.CASCADE, db_column='cus_id', null=True)
     emp = models.ForeignKey(Employee, on_delete=models.CASCADE, db_column='emp_id')
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=7.00) # ເກັບ % ພາສີ
+    STATUS_CHOICES = [
+        ('Quotation', 'ໃບສະເໜີລາຄາ'),
+        ('Paid', 'ຊຳລະແລ້ວ'),
+        ('Unpaid', 'ຄ້າງຊຳລະ'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Paid')
 
     class Meta: db_table = 'tb_sales'
 

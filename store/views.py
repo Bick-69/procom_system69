@@ -1,4 +1,5 @@
 import random
+from urllib import request
 from django.db import models
 from django.db.models import Q, Sum, Count
 from django.shortcuts import render, redirect, get_object_or_404
@@ -285,7 +286,7 @@ def clear_cart(request):
     return redirect("pos")
 
 
-# Checkout and save to Database
+# Checkout and save to Database (ສະບັບປັບປຸງ: ຮອງຮັບ Quotation, VAT, Discount)
 @login_required(login_url="login")
 def checkout(request):
     if request.method == "POST":
@@ -293,57 +294,64 @@ def checkout(request):
         if not cart:
             return redirect("pos")
 
-        # ດຶງຈຳນວນເງິນທີ່ຮັບມາ ແລະ ລາຍການເງິນເພາະໃນ checkout form
+        # 1. ຮັບຄ່າຈາກຟອມ (ເພີ່ມ Discount ແລະ Status)
         amount_paid = float(request.POST.get("amount_paid", 0))
         cus_id = request.POST.get("cus_id")
+        discount = float(request.POST.get("discount", 0)) # ສ່ວນຫຼຸດ
+        status = request.POST.get("status", "Paid") # ຮັບຄ່າວ່າຈະເປັນ 'Quotation' ຫຼື 'Paid'
+        
+        # 2. ຄິດໄລ່ເງິນຕາມແບບຟອມທີ່ທ່ານ Lucky ສົ່ງມາ
+        sub_total = sum(item["price"] * item["quantity"] for item in cart.values())
+        total_after_discount = sub_total - discount
+        vat = total_after_discount * 0.07  # VAT 7%
+        grand_total = total_after_discount + vat
 
-        total_amount = sum(item["price"] * item["quantity"] for item in cart.values())
-
-        # ກວດສອບວ່າ ຈຳນວນເງິນທີ່ຮັບມາ ພໍແລ້ວ ຫຼື ຍັງບໍ່ພໍແລ້ວ
-        if amount_paid < total_amount:
+        # 3. ກວດສອບເງິນທີ່ຮັບມາ (ສະເພາະກໍລະນີຂາຍສົດ 'Paid')
+        if status == "Paid" and amount_paid < grand_total:
             messages.error(request, "ຈຳນວນເງິນທີ່ຮັບມາບໍ່ພຽງພໍ!")
             return redirect("pos")
 
-        change_amount = amount_paid - total_amount
-
-        # ດຶງພະນັກງານຄນໍາເຂົ້າ ແລະ ລູກຄ້າ (ຖ້າມີ) มาໃຊ້ໃນການບັນທຶກການຂາຍ
-        emp = Employee.objects.first()
+        # 4. ດຶງຂໍ້ມູນພະນັກງານທີ່ Login ຢູ່
+        emp = Employee.objects.filter(emp_name=request.user.username).first()
         if not emp:
-            emp = Employee.objects.create(emp_id="EMP001", emp_name="Admin")
+            emp = Employee.objects.create(emp_id="EMP001", emp_name=request.user.username)
 
-        # ດຶງຂໍ້ມູນລູກຄ້າ ຖ້າມີ cus_id ແລະ ສ້າງ sale record ແລ້ວເກັບ sale_id ໄວ້
         customer = Customer.objects.filter(cus_id=cus_id).first() if cus_id else None
-
         sale_id = f"S{str(int(timezone.now().timestamp()))[-8:]}"
 
-        # ສ້າງ sale record ແລ້ວເກັບ sale_id ໄວ້
+        # 5. ສ້າງ Record ໃນ Sale (ເພີ່ມ VAT ແລະ Discount)
         new_sale = Sale.objects.create(
             sale_id=sale_id,
-            total_amount=total_amount,
+            total_amount=grand_total, # ຍອດລວມສຸດທິ
+            discount=discount,        # ເກັບສ່ວນຫຼຸດໄວ້
+            vat=vat,                  # ເກັບຄ່າ VAT ໄວ້
             emp=emp,
             cus=customer,
-            status="Paid",
+            status=status
         )
 
-        # ສ້າງ sale detail records ແລະ ອັບເດດ stock ໃນ product table
+        # 6. ສ້າງ SaleDetail ແລະ ຈັດການ Stock
         for pid, item in cart.items():
             product = Product.objects.get(pro_id=pid)
             SaleDetail.objects.create(
-                sale=new_sale, pro=product, qty=item["quantity"], price=item["price"]
+                sale=new_sale,
+                pro=product,
+                qty=item["quantity"],
+                price=item["price"]
             )
-            # ອັບເດດ stock ໃນ product table
-            product.qty -= item["quantity"]
-            product.save()
+            
+            # [ສຳຄັນ] ຖ້າເປັນ Quotation ຈະ "ບໍ່ຕັດສະຕັອກ"
+            if status == "Paid":
+                product.qty -= item["quantity"]
+                product.save()
 
+        # 7. ເຄຼຍ Cart ແລະ ສົ່ງໄປໜ້າໃບບິນ
         request.session["cart"] = {}
-
-        # ກວດສອບວ່າ ຈຳນວນເງິນທີ່ຮັບມາ ພໍແລ້ວ ຫຼື ຍັງບໍ່ພໍແລ້ວ
         request.session["payment_info"] = {
             "amount_paid": amount_paid,
-            "change_amount": change_amount,
+            "change_amount": amount_paid - grand_total if status == "Paid" else 0
         }
 
-        # ສົ່ງໄປຫາ receipt page ແລະ ສະແດງ messages ໃນ receipt page ກ່ອນ redirect
         return redirect("receipt", sale_id=new_sale.sale_id)
 
     return redirect("pos")
@@ -368,31 +376,39 @@ def receipt(request, sale_id):
 @login_required(login_url="login")
 @user_passes_test(is_admin, login_url="dashboard")
 def sales_report(request):
+    today = timezone.now().date()
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    status_filter = request.GET.get('status')
     search_query = request.GET.get("search", "")
-    # ດຶງຂໍ້ມູນການຂາຍທັງໝົດ
+
     sales = Sale.objects.all().order_by("-sale_date")
 
+    if start_date and end_date:
+        sales = sales.filter(sale_date__date__range=[start_date, end_date])
+    elif not search_query:
+        sales = sales.filter(sale_date__year=today.year, sale_date__month=today.month)
+    if status_filter:
+        sales = sales.filter(status=status_filter)
+    
     if search_query:
         sales = sales.filter(
-            Q(sale_id__icontains=search_query)
-            | Q(cus__cus_name__icontains=search_query)
-            | Q(emp__emp_name__icontains=search_query)
+            Q(sale_id__icontains=search_query) | 
+            Q(cus__cus_name__icontains=search_query)
         ).distinct()
 
-    # ຄິດໄລ່ຍອດລວມ ແລະ ຈຳນວນບິນຈາກຂໍ້ມູນທີ່ Filter ແລ້ວ
     total_revenue = sales.aggregate(Sum("total_amount"))["total_amount__sum"] or 0
     total_bills = sales.count()
 
-    return render(
-        request,
-        "store/sales_report.html",
-        {
-            "sales": sales,
-            "total_revenue": total_revenue,
-            "total_bills": total_bills,
-            "search_query": search_query,
-        },
-    )
+    return render(request, "store/sales_report.html", {
+        "sales": sales,
+        "total_revenue": total_revenue,
+        "total_bills": total_bills,
+        "start_date": start_date,
+        "end_date": end_date,
+        "status_filter": status_filter,
+        "search_query": search_query
+    })
 
 
 @login_required(login_url="login")
@@ -754,13 +770,17 @@ def checkout(request):
 
         change_amount = amount_paid - total_amount
 
-        emp = Employee.objects.filter(
-            emp_name=request.user.username
-        ).first()  # ດຶງພະນັກງານທີ່ເຂົ້າໃຊ້ລະບົບ ແລະ ສ້າງ record ແລ້ວເກັບ emp_id ໄວ້
+        # ສ່ວນໃໝ່ທີ່ປອດໄພກວ່າ
+# ພະຍາຍາມດຶງພະນັກງານຄົນທຳອິດທີ່ມີໃນລະບົບມາໃຊ້ກ່ອນ (ຫຼື ດຶງຕາມຊື່ User)
+        emp = Employee.objects.filter(emp_name=request.user.username).first()
+
         if not emp:
-            emp = Employee.objects.create(
-                emp_id="EMP001", emp_name=request.user.username
-            )
+            emp = Employee.objects.first() # ຖ້າຫາຕາມຊື່ບໍ່ເຫັນ ໃຫ້ເອົາຄົນທຳອິດໃນ DB ມາເລີຍ
+
+        if not emp:
+            # ຖ້າໃນ Database ຍັງບໍ່ມີພະນັກງານຈັກຄົນເລີຍ ແທ້ໆ
+            messages.error(request, "ບໍ່ມີຂໍ້ມູນພະນັກງານໃນລະບົບ! ກະລຸນາເພີ່ມພະນັກງານໃນ Admin ກ່ອນ.")
+            return redirect("pos")
 
         # ດຶງຂໍ້ມູນລູກຄ້າ ຖ້າມີ cus_id ແລະ ສ້າງ sale record ແລ້ວເກັບ sale_id ໄວ້
         customer = Customer.objects.filter(cus_id=cus_id).first() if cus_id else None
@@ -800,19 +820,25 @@ def checkout(request):
     return redirect("pos")
 
 
-# Receipt View
 @login_required(login_url="login")
 def receipt(request, sale_id):
     sale = get_object_or_404(Sale, sale_id=sale_id)
     details = SaleDetail.objects.filter(sale=sale)
+    
+    # ໄລ່ Sub Total ກ່ອນມີ VAT ແລະ ສ່ວນຫຼຸດ ເພື່ອສະແດງໃນ Form
+    sub_total = sum(item.price * item.qty for item in details)
 
-    # ດຶງຂໍ້ມູນການຊຳລະເງິນຈາກ session ແລະ ລົບອອກຫຼັງຈາກດຶງແລ້ວ
     payment_info = request.session.pop("payment_info", None)
 
     return render(
         request,
-        "store/receipt.html",
-        {"sale": sale, "details": details, "payment_info": payment_info},
+        "store/receipt.html", # ໃຊ້ Receipt ໜ້າເວັບປົກກະຕິ
+        {
+            "sale": sale,
+            "details": details,
+            "payment_info": payment_info,
+            "sub_total": sub_total
+        },
     )
 
 
@@ -964,29 +990,31 @@ def delete_product(request, pro_id):
 # Claim List
 @login_required(login_url="login")
 def claim_list(request):
+    today = timezone.now().date()
+    last_week = today - timezone.timedelta(days=7)
+
     search_query = request.GET.get("search", "").strip()
     status_filter = request.GET.get("status", "").strip()
 
     claims = Claim.objects.all().order_by("-claim_date")
 
-    # 1.ທົດສອບ Search: ຖ້າພິມຫຍັງ ໃຫ້ຫາແຕ່ ID ກ່ອນເພື່ອເບິ່ງວ່າ Filter ຕິດຫຼືບໍ່
+    if not (search_query or status_filter):
+        claims = claims.filter(
+            Q(claim_date__date__gte=last_week) | 
+            Q(status__in=["Processing", "Repairing", "ລໍຖ້າກວດສອບ", "ກຳລັງສ້ອມແປງ"])
+        )
+
     if search_query:
         claims = claims.filter(
-            Q(claim_id__icontains=search_query)
-            | Q(sale_detail__pro__pro_name__icontains=search_query)
+            Q(claim_id__icontains=search_query) |
+            Q(sale_detail__pro__pro_name__icontains=search_query)
         ).distinct()
 
     if status_filter:
-        if status_filter == "ລໍຖ້າກວດສອບ":
-            claims = claims.filter(Q(status="Processing") | Q(status="ລໍຖ້າກວດສອບ"))
-        elif status_filter == "ກຳລັງສ້ອມແປງ":
-            claims = claims.filter(Q(status="Repairing") | Q(status="ກຳລັງສ້ອມແປງ"))
-        elif status_filter == "ສ້ອມແປງສຳເລັດ":
-            claims = claims.filter(Q(status="Completed") | Q(status="ສ້ອມແປງສຳເລັດ"))
+        claims = claims.filter(status=status_filter)
 
-    context = {
+    return render(request, "store/claim_list.html", {
         "claims": claims,
         "search_query": search_query,
         "status_filter": status_filter,
-    }
-    return render(request, "store/claim_list.html", context)
+    })
