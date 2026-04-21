@@ -1,4 +1,5 @@
 from django.db import models
+import datetime
 
 # D1: ຕາຕະລາງພະນັກງານ
 class Employee(models.Model):
@@ -7,7 +8,7 @@ class Employee(models.Model):
     surname = models.CharField(max_length=50)
     tel = models.CharField(max_length=20)
     position = models.CharField(max_length=30)
-    password = models.CharField(max_length=50)
+    password = models.CharField(max_length=128)
 
     class Meta: db_table = 'tb_employees'
 
@@ -96,6 +97,28 @@ class ImportDetail(models.Model):
 
     class Meta: db_table = 'tb_import_details'
 
+def generate_sale_id():
+    # ຫາປີ ແລະ ເດືອນປັດຈຸບັນ ເຊັ່ນ: 2604 (2026 / ເດືອນ 04)
+    now = datetime.datetime.now()
+    date_prefix = now.strftime("%y%m") # ໃຊ້ %y ເພື່ອເອົາແຕ່ 2 ຫຼັກທ້າຍຂອງປີ
+    
+    # ຫາ Sale ລ່າສຸດໃນ Database
+    last_sale = Sale.objects.all().order_by('-sale_id').first()
+    
+    if last_sale and last_sale.sale_id.startswith(f"INV-{date_prefix}"):
+        # ດຶງເລກ 4 ຫຼັກທ້າຍມາບວກ 1
+        last_no = int(last_sale.sale_id[-4:])
+        new_no = last_no + 1
+    elif last_sale and last_sale.sale_id.startswith(f"QT-{date_prefix}"):
+        # ກໍລະນີມີ QT ຢູ່ແລ້ວ ກໍໃຫ້ນັບຕໍ່ (ຫຼື ຈະແຍກ Logic ກໍໄດ້)
+        last_no = int(last_sale.sale_id[-4:])
+        new_no = last_no + 1
+    else:
+        new_no = 1
+
+    # ສົ່ງຄ່າກັບເປັນ Format: INV-26040001 (04d ຄືໃຫ້ມີເລກ 0 ທາງໜ້າ 4 ໂຕ)
+    return f"INV-{date_prefix}{new_no:04d}"
+
 # D11: ຕາຕະລາງການຂາຍ
 class Sale(models.Model):
     sale_id = models.CharField(max_length=10, primary_key=True)
@@ -104,7 +127,7 @@ class Sale(models.Model):
     cus = models.ForeignKey(Customer, on_delete=models.CASCADE, db_column='cus_id', null=True)
     emp = models.ForeignKey(Employee, on_delete=models.CASCADE, db_column='emp_id')
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=7.00) # ເກັບ % ພາສີ
+    vat_rate = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) # ເກັບ % ພາສີ
     STATUS_CHOICES = [
         ('Quotation', 'ໃບສະເໜີລາຄາ'),
         ('Paid', 'ຊຳລະແລ້ວ'),

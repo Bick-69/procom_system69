@@ -124,7 +124,7 @@
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if 'category' in request.path or 'brand' in request.path or 'unit' in request.path or 'supplier' in request.path %}active{% endif %}" 
-                           href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-gear-wide-connected"></i> ຂໍ້ມູນພື້ນຖານ
                         </a>
                         <ul class="dropdown-menu border-0 shadow-sm mt-2">
@@ -132,6 +132,7 @@
                             <li><a class="dropdown-item py-2 fw-semibold" href="{% url 'category_list' %}"><i class="bi bi-tags-fill me-2 text-primary"></i> ໝວດໝູ່</a></li>
                             <li><a class="dropdown-item py-2 fw-semibold" href="{% url 'brand_list' %}"><i class="bi bi-patch-check-fill me-2 text-success"></i> ຍີ່ຫໍ້</a></li>
                             <li><a class="dropdown-item py-2 fw-semibold" href="{% url 'unit_list' %}"><i class="bi bi-rulers me-2 text-warning"></i> ຫົວໜ່ວຍ</a></li>
+                            <li><a class="dropdown-item py-2 fw-semibold" href="{% url 'customer_list' %}"><i class="bi bi-person-lines-fill me-2 text-danger"></i> ລູກຄ້າ</a></li>
                         </ul>
                     </li>
 
@@ -150,6 +151,11 @@
                     <li class="nav-item">
                         <a class="nav-link {% if 'report' in request.path %}active{% endif %}" href="{% url 'all_reports' %}">
                             <i class="bi bi-bar-chart-fill"></i> ລາຍງານ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'shop_settings' %}active{% endif %}" href="{% url 'shop_settings' %}">
+                            <i class="bi bi-shop"></i> ຂໍ້ມູນຮ້ານ
                         </a>
                     </li>
                     {% endif %}

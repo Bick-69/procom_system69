@@ -185,6 +185,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // ດຶງຄ່າ Subtotal ຈາກ Django (ເປັນໂຕເລກ)
         const subTotal = {{ total_price|default:0 }};
         const discountInput = document.getElementById("discount_input");
         const amountPaidInput = document.getElementById("amount_paid");
@@ -203,30 +204,46 @@
             let totalAfterDiscount = subTotal - discount;
             let vat = totalAfterDiscount * 0.07;
             let grandTotal = totalAfterDiscount + vat;
-            let paid = parseFloat(amountPaidInput.value) || 0;
-            let change = paid - grandTotal;
-
-            // ອັບເດດການສະແດງຜົນ Summary
+            
+            // ອັບເດດການສະແດງຜົນ Summary ດ້ານເທິງ
             displayDiscount.textContent = "- " + discount.toLocaleString() + " ກີບ";
             displayVat.textContent = vat.toLocaleString() + " ກີບ";
             displayGrandTotal.textContent = grandTotal.toLocaleString() + " ກີບ";
 
-            // ກວດສອບສະຖານະ
+            // ເຊັກສະຖານະການເລືອກ (Quotation vs Paid)
             if (saleStatus.value === "Quotation") {
+                // --- ກໍລະນີໃບສະເໜີລາຄາ ---
                 changeSection.style.display = "none";
                 paidSection.style.opacity = "0.5";
-                amountPaidInput.disabled = true;
-                btnCheckout.disabled = subTotal <= 0;
+                
+                // ປັບໃຫ້ປ້ອນເງິນບໍ່ໄດ້ ແຕ່ຕ້ອງໃສ່ຄ່າ 0 ໄວ້ເພື່ອໃຫ້ Form ສົ່ງໄປໄດ້
+                amountPaidInput.readOnly = true; 
+                amountPaidInput.value = 0;
+
+                // ປຸ່ມຢືນຢັນ: ຖ້າມີສິນຄ້າໃນກະຕ່າ (subTotal > 0) ກໍໃຫ້ກົດໄດ້ເລີຍ
+                btnCheckout.disabled = (subTotal <= 0);
+                btnCheckout.innerHTML = '<i class="bi bi-file-earmark-text-fill me-2"></i> ອອກໃບສະເໜີລາຄາ';
+                btnCheckout.style.backgroundColor = "#4318ff"; // ປ່ຽນເປັນສີຟ້າໃຫ້ຕ່າງຈາກການຂາຍສົດ
+                btnCheckout.style.borderColor = "#4318ff";
             } else {
+                // --- ກໍລະນີຂາຍສົດ (Paid) ---
                 changeSection.style.display = "flex";
                 paidSection.style.opacity = "1";
-                amountPaidInput.disabled = false;
-                
-                if (subTotal === 0) {
+                amountPaidInput.readOnly = false;
+
+                let paid = parseFloat(amountPaidInput.value) || 0;
+                let change = paid - grandTotal;
+
+                btnCheckout.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> ຢືນຢັນການຂາຍ';
+                btnCheckout.style.backgroundColor = "#05cd99"; // ສີຂຽວຄືເກົ່າ
+                btnCheckout.style.borderColor = "#05cd99";
+
+                if (subTotal <= 0) {
                     btnCheckout.disabled = true;
-                } else if (change < 0) {
-                    changeDisplay.textContent = "ເງິນບໍ່ພໍ!";
-                    changeDisplay.style.color = "#ee5d50";
+                } else if (amountPaidInput.value === "" || change < 0) {
+                    // ຖ້າຍັງບໍ່ປ້ອນເງິນ ຫຼື ເງິນບໍ່ພໍ
+                    changeDisplay.textContent = "ລໍຖ້າການຊຳລະ...";
+                    changeDisplay.style.color = "#a3aed1";
                     btnCheckout.disabled = true;
                 } else {
                     changeDisplay.textContent = change.toLocaleString() + " ກີບ";
@@ -236,11 +253,12 @@
             }
         }
 
+        // ຈັບ Event ການປ່ຽນແປງຂໍ້ມູນ
         discountInput.addEventListener("input", calculateAll);
         amountPaidInput.addEventListener("input", calculateAll);
         saleStatus.addEventListener("change", calculateAll);
 
-        // ເລີ່ມໄລ່ເງິນຕອນໂຫຼດໜ້າ
+        // ເລີ່ມໄລ່ເງິນຕອນໂຫຼດໜ້າຄັ້ງທຳອິດ
         calculateAll();
     });
 </script>

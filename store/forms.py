@@ -1,0 +1,25 @@
+from django import forms
+from .models import Employee
+
+class EmployeeForm(forms.ModelForm):
+    def clean_password(self):
+        from django.contrib.auth.hashers import make_password
+        password = self.cleaned_data.get('password')
+        return make_password(password) if password else ''
+    class Meta:
+        model = Employee
+        fields = ['emp_name', 'surname', 'tel', 'position', 'password']
+        labels = {
+            'emp_name': 'ຊື່ພະນັກງານ',
+            'surname': 'ນາມສະກຸນ',
+            'tel': 'ເບີໂທລະສັບ',
+            'position': 'ຕຳແໜ່ງ',
+            'password': 'ລະຫັດຜ່ານ (Password)',
+        }
+        widgets = {
+            'emp_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ປ້ອນຊື່...'}),
+            'surname': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ປ້ອນນາມສະກຸນ...'}),
+            'tel': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ປ້ອນເບີໂທ...'}),
+            'position': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ປ້ອນຕຳແໜ່ງ...'}),
+            'password': forms.PasswordInput(render_value=True, attrs={'class': 'form-control', 'placeholder': 'ປ້ອນລະຫັດຜ່ານ...'}),
+        }
