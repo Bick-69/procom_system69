@@ -1,0 +1,85 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold"><i class="bi bi-receipt me-2"></i> ລາຍລະອຽດການຂາຍ</h3>
+        <a href="/" class="btn btn-light rounded-pill">
+            <i class="bi bi-arrow-left"></i> ກັບຄືນ
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                <h5 class="fw-bold mb-3">ຂໍ້ມູນທົ່ວໄປ</h5>
+                <p class="mb-1 text-muted small">ລະຫັດບິນ:</p>
+                <p class="fw-bold text-primary">#{{ sale.sale_id }}</p>
+                <hr>
+                <p class="mb-1 text-muted small">ວັນທີການຂາຍ:</p>
+                <p class="fw-bold">{{ sale.sale_date|date:"d/m/Y H:i" }}</p>
+                <hr>
+                <p class="mb-1 text-muted small">ຜູ້ຊື້:</p>
+                <p class="fw-bold">{{ sale.cus.cus_name|default:"ລູກຄ້າທົ່ວໄປ" }}</p>
+                <hr>
+                <p class="mb-1 text-muted small">ພະນັກງານຂາຍ:</p>
+                <p class="fw-bold">{{ sale.emp.emp_name }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h5 class="fw-bold mb-3">ລາຍການສິນຄ້າ</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ສິນຄ້າ</th>
+                                <th class="text-center">ຈຳນວນ</th>
+                                <th class="text-end">ລາຄາ/ໜ່ວຍ</th>
+                                <th class="text-end">ລວມ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in details %}
+                            <tr>
+                                <td>
+                                    {{ item.pro.pro_name }}
+                                    {% if item.warranty_end %}
+                                    <br><small class="text-info">ປະກັນໝົດ: {{ item.warranty_end|date:"d/m/Y" }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ item.qty }}</td>
+                                <td class="text-end">{{ item.price|floatformat:"0g" }}</td>
+                                <td class="text-end fw-bold">
+                                    {% widthratio item.qty 1 item.price %} ກີບ
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-group-divider">
+                            {% if sale.discount > 0 %}
+                            <tr>
+                                <td colspan="3" class="text-end text-muted">ສ່ວນຫຼຸດ:</td>
+                                <td class="text-end text-danger">-{{ sale.discount|floatformat:"0g" }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold fs-5">ຍອດລວມທັງໝົດ:</td>
+                                <td class="text-end fw-bold fs-5 text-primary">{{ sale.total_amount|floatformat:"0g" }} ກີບ</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="text-end mt-3">
+                    <a href="{% url 'receipt' sale.sale_id %}" target="_blank" class="btn btn-primary">
+                        <i class="bi bi-printer"></i>
+                        {% if sale.status == 'Quotation' %} ພິມໃບສະເໜີລາຄາ {% else %} ພິມໃບຮັບເງິນ {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
