@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container-fluid px-0">
     
-<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold mb-0" style="color: #2b3674;">
             <i class="bi bi-grid-1x2-fill me-2" style="color: #4318ff;"></i> Dashboard
         </h3>
@@ -63,52 +63,167 @@
         </div>
     </div>
 
-    <div class="card p-4">
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+            <div class="card p-4 border-0 shadow-sm rounded-4 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1" style="color: #2b3674;">ແນວໂນ້ມການຂາຍ</h5>
+                        <p class="text-muted small">ຍອດລວມການຂາຍ 7 ວັນຍ້ອນຫຼັງ</p>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-light btn-sm rounded-3" type="button"><i class="bi bi-three-dots"></i></button>
+                    </div>
+                </div>
+                <div style="height: 300px;">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card p-4 border-0 shadow-sm rounded-4 h-100">
+                <h5 class="fw-bold mb-3" style="color: #2b3674;">ສິນຄ້າໃກ້ໝົດຄັງ</h5>
+                <div class="list-group list-group-flush">
+                    {% for item in low_stock_products %}
+                    <div class="list-group-item px-0 border-0 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="p-2 bg-light rounded-3 me-3">
+                                <i class="bi bi-box-seam text-danger"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold small text-dark">{{ item.pro_name }}</h6>
+                                <span class="text-muted" style="font-size: 0.75rem;">ຄັງເຫຼືອ: {{ item.qty }}</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'import_stock' %}" class="btn btn-sm btn-light rounded-pill">ເຕີມ</a>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-4 small">ຍັງບໍ່ມີສິນຄ້າໃກ້ໝົດ</p>
+                    {% endfor %}
+                </div>
+                <hr class="text-muted opacity-25">
+                <h6 class="fw-bold mb-3 small" style="color: #2b3674;">ເມນູດ່ວນ</h6>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <a href="{% url 'pos' %}" class="btn btn-primary w-100 py-2 rounded-3 small fw-bold">
+                            <i class="bi bi-plus-circle me-1"></i> ຂາຍເຄື່ອງ
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary w-100 py-2 rounded-3 small fw-bold text-dark border-light shadow-sm">
+                            <i class="bi bi-person-plus me-1"></i> ເພີ່ມລູກຄ້າ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div class="card p-4 border-0 shadow-sm rounded-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="fw-bold mb-0" style="color: #2b3674;">ລາຍການຂາຍຫຼ້າສຸດ (Recent Sales)</h5>
+            <h5 class="fw-bold mb-0" style="color: #2b3674;">ລາຍການຂາຍຫຼ້າສຸດ</h5>
             <a href="{% url 'all_reports' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">ເບິ່ງທັງໝົດ</a>
         </div>
-        
         <div class="table-responsive">
-            <table class="table table-borderless align-middle mb-0">
-                <thead style="border-bottom: 2px solid #f4f7fe;">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
                     <tr>
-                        <th class="text-muted fw-bold pb-3">ລະຫັດບິນ</th>
-                        <th class="text-muted fw-bold pb-3">ເວລາ</th>
-                        <th class="text-muted fw-bold pb-3">ລູກຄ້າ</th>
-                        <th class="text-muted fw-bold pb-3">ສະຖານະ</th>
-                        <th class="text-end text-muted fw-bold pb-3">ຍອດລວມ</th>
+                        <th class="border-0 text-muted small fw-bold">ລະຫັດບິນ</th>
+                        <th class="border-0 text-muted small fw-bold">ວັນທີ/ເວລາ</th>
+                        <th class="border-0 text-muted small fw-bold">ລູກຄ້າ</th>
+                        <th class="border-0 text-muted small fw-bold">ຍອດລວມ</th>
+                        <th class="border-0 text-muted small fw-bold">ສະຖານະ</th>
+                        <th class="border-0 text-muted small fw-bold text-center">ຈັດການ</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for sale in recent_sales %}
-                    <tr style="border-bottom: 1px solid #f4f7fe;">
-                        <td class="py-3 fw-bold" style="color: #4318ff;">{{ sale.sale_id }}</td>
-                        <td class="py-3 fw-medium text-secondary">{{ sale.sale_date|date:"H:i - d/m/Y" }}</td>
-                        <td class="py-3 fw-medium">{% if sale.cus %}{{ sale.cus.cus_name }}{% else %}<span class="text-muted">ລູກຄ້າທົ່ວໄປ</span>{% endif %}</td>
-                        <td class="py-3">
-                            {% if sale.status == 'Paid' or sale.status == 'ຈ່າຍແລ້ວ' %}
-                                <span class="badge rounded-pill px-3 py-2" style="background-color: rgba(5, 205, 153, 0.1); color: #05cd99;">ຈ່າຍແລ້ວ</span>
-                            {% else %}
-                                <span class="badge rounded-pill px-3 py-2" style="background-color: rgba(238, 93, 80, 0.1); color: #ee5d50;">{{ sale.status }}</span>
-                            {% endif %}
+                    <tr>
+                        <td class="fw-bold text-primary">#{{ sale.sale_id }}</td>
+                        <td class="small text-muted">{{ sale.sale_date|date:"d/m/Y H:i" }}</td>
+                        <td>{{ sale.cus.cus_name|default:"ລູກຄ້າທົ່ວໄປ" }}</td>
+                        <td class="fw-bold">{{ sale.total_amount|floatformat:"0g" }} ກີບ</td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success rounded-pill px-3">ສຳເລັດ</span>
                         </td>
-                        <td class="py-3 text-end fw-bold" style="color: #2b3674;">{{ sale.total_amount|floatformat:"0g" }} ກີບ</td>
+                        <td class="text-center">
+                            <a href="{% url 'sale_detail' sale.sale_id %}" class="btn btn-sm btn-light rounded-circle">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center py-5">
-                            <div class="text-muted fw-medium">
-                                <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
-                                ຍັງບໍ່ມີລາຍການຂາຍໃນມື້ນີ້
-                            </div>
-                        </td>
+                        <td colspan="6" class="text-center py-4 text-muted">ຍັງບໍ່ມີລາຍການຂາຍໃນມື້ນີ້</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+    </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    
+    // ສ້າງ Gradient Fill
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(67, 24, 255, 0.2)');
+    gradient.addColorStop(1, 'rgba(67, 24, 255, 0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_labels|safe }},
+            datasets: [{
+                label: 'ຍອດຂາຍ (ກີບ)',
+                data: {{ sales_data|safe }},
+                borderColor: '#4318ff',
+                backgroundColor: gradient, // ໃຊ້ gradient ທີ່ສ້າງໄວ້
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#4318ff',
+                pointBorderColor: '#fff',
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, // ປ່ຽນຈາກ True ເປັນ true
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1b2559',
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 13 },
+                    padding: 10,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'ຍອດຂາຍ: ' + context.parsed.y.toLocaleString() + ' ກີບ';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
 {% endblock %}

@@ -41,4 +41,5 @@ urlpatterns = [
     path('customers/', views.customer_list, name='customer_list'),
     path('customers/edit/<str:cus_id>/', views.edit_customer, name='edit_customer'),
     path('customers/delete/<str:cus_id>/', views.delete_customer, name='delete_customer'),
+    path('sale/<str:pk>/', views.sale_detail, name='sale_detail'),
 ]

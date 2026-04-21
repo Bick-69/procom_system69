@@ -8,7 +8,7 @@ class Employee(models.Model):
     surname = models.CharField(max_length=50)
     tel = models.CharField(max_length=20)
     position = models.CharField(max_length=30)
-    password = models.CharField(max_length=128)
+    password = models.CharField(max_length=255)
 
     class Meta: db_table = 'tb_employees'
 
@@ -98,12 +98,15 @@ class ImportDetail(models.Model):
     class Meta: db_table = 'tb_import_details'
 
 def generate_sale_id():
+    import datetime
+    today = datetime.date.today()
+    prefix = f"INV-{today.strftime('%y%m')}"  # ເອົາແຕ່ 2 ຫຼັກທ້າຍຂອງປີ
     # ຫາປີ ແລະ ເດືອນປັດຈຸບັນ ເຊັ່ນ: 2604 (2026 / ເດືອນ 04)
     now = datetime.datetime.now()
     date_prefix = now.strftime("%y%m") # ໃຊ້ %y ເພື່ອເອົາແຕ່ 2 ຫຼັກທ້າຍຂອງປີ
     
     # ຫາ Sale ລ່າສຸດໃນ Database
-    last_sale = Sale.objects.all().order_by('-sale_id').first()
+    last_sale = Sale.objects.filter(sale_id__icontains=prefix).order_by('-sale_id').first()
     
     if last_sale and last_sale.sale_id.startswith(f"INV-{date_prefix}"):
         # ດຶງເລກ 4 ຫຼັກທ້າຍມາບວກ 1
@@ -121,7 +124,7 @@ def generate_sale_id():
 
 # D11: ຕາຕະລາງການຂາຍ
 class Sale(models.Model):
-    sale_id = models.CharField(max_length=10, primary_key=True)
+    sale_id = models.CharField(max_length=15, primary_key=True)
     sale_date = models.DateTimeField(auto_now_add=True)
     total_amount = models.FloatField()
     cus = models.ForeignKey(Customer, on_delete=models.CASCADE, db_column='cus_id', null=True)
@@ -161,7 +164,7 @@ class Shipping(models.Model):
 class Claim(models.Model):
     claim_id = models.CharField(max_length=10, primary_key=True)
     claim_date = models.DateTimeField(auto_now_add=True)
-    sale_detail = models.ForeignKey(SaleDetail, on_delete=models.CASCADE, db_column='sale_detail_id')
+    sale_detail = models.ForeignKey(SaleDetail, on_delete=models.CASCADE)
     emp = models.ForeignKey(Employee, on_delete=models.CASCADE, db_column='emp_id')
     symptom = models.TextField()
     status = models.CharField(max_length=30, default='Processing')

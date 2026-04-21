@@ -1,10 +1,12 @@
+from datetime import timedelta
 from multiprocessing import context
 import random
 from urllib import request
 from django.db import models
 from django.db.models import Q, Sum, F, Count
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login as auth_login, logout
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib import messages
@@ -41,24 +43,30 @@ def login_view(request):
     if request.method == "POST":
         u = request.POST.get("username")
         p = request.POST.get("password")
-        from django.contrib.auth.hashers import check_password
-        from django.contrib.auth import login as auth_login
-        from django.contrib.auth.models import User
 
+        # 1. ລອງ Login ແບບ Standard Django ກ່ອນ (ສຳລັບ Superuser ທີ່ສ້າງຜ່ານ Docker)
+        user = authenticate(request, username=u, password=p)
+        
+        if user is not None:
+            auth_login(request, user)
+            messages.success(request, f"ສະບາຍດີ Admin {user.username}!")
+            return redirect("dashboard")
+        
+        # 2. ຖ້າບໍ່ແມ່ນ Admin, ໃຫ້ລອງກວດໃນ Table Employee (ສຳລັບພະນັກງານທຳມະດາ)
         try:
-            user = Employee.objects.get(emp_name=u)
-            if check_password(p, user.password):
-                django_user, created = User.objects.get_or_create(
-                    username=user.emp_name,
-                    defaults={'is_staff': True, 'is_superuser': user.position.lower() == 'admin'}
-                )
+            emp = Employee.objects.get(emp_name=u)
+            if emp.password == p:  # ທຽບລະຫັດ 8 ຕົວແບບ Plain Text ຕາມທີ່ Lucky ຕ້ອງການ
+                # ສ້າງ Django User ໃຫ້ອັດຕະໂນມັດເພື່ອໃຫ້ລະບົບຈຳ Session ໄດ້
+                from django.contrib.auth.models import User
+                django_user, created = User.objects.get_or_create(username=emp.emp_name)
+                
                 auth_login(request, django_user)
-                messages.success(request, f"ສະບາຍດີ {user.emp_name}!")
+                messages.success(request, f"ສະບາຍດີພະນັກງານ {emp.emp_name}!")
                 return redirect("dashboard")
             else:
-                messages.error(request, "ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ!")
+                messages.error(request, "ລະຫັດຜ່ານພະນັກງານບໍ່ຖືກຕ້ອງ!")
         except Employee.DoesNotExist:
-            messages.error(request, "ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ!")
+            messages.error(request, "ບໍ່ມີຊື່ຜູ້ໃຊ້ນີ້ໃນລະບົບ!")
 
     shop = ShopInfo.objects.first()
     return render(request, "store/login.html", {"shop": shop})
@@ -83,31 +91,36 @@ def dashboard(request):
     today = timezone.now().date()
 
     # 1. ຍອດຂາຍມື້ນີ້
-    total_sales_dict = Sale.objects.filter(sale_date__date=today).aggregate(
-        Sum("total_amount")
-    )
+    total_sales_dict = Sale.objects.filter(sale_date__date=today).aggregate(Sum("total_amount"))
     total_sales = total_sales_dict["total_amount__sum"] or 0
 
-    # 2. ຈຳນວນບິນມື້ນີ້ (ໃຊ້ໃຫ້ກົງກັບ HTML: total_orders)
+    # 2. ຈຳນວນບິນມື້ນີ້
     total_orders = Sale.objects.filter(sale_date__date=today).count()
 
-    # 3. ຈຳນວນລາຍການສິນຄ້າໃນຄັງ (ໃຊ້ໃຫ້ກົງກັບ HTML: total_products)
-    # ຖ້າຢາກໄດ້ຈຳນວນ "ລາຍການ" ໃຫ້ໃຊ້ .count() ຈະເບິ່ງສົມຈິງກວ່າ
+    # 3. ຈຳນວນລາຍການສິນຄ້າໃນຄັງ
     total_products = Product.objects.count()
 
-    # 4. ສິນຄ້າລໍຖ້າເຄມ (ໃຊ້ໃຫ້ກົງກັບ HTML: total_claims)
-    # ກວດສອບວ່າໃນ Database ໃຊ້ຄຳວ່າ 'ລໍຖ້າກວດສອບ' ແທ້ຫຼືບໍ່
+    # 4. ສິນຄ້າລໍຖ້າເຄມ
     total_claims = Claim.objects.filter(status="ລໍຖ້າກວດສອບ").count()
-    
-    total_stock_qty = Product.objects.aggregate(Sum('qty'))['qty__sum'] or 0
+
+    # --- ສ່ວນທີ່ເພີ່ມໃໝ່ສຳລັບກຣາຟ ---
+    sales_labels = []
+    sales_data = []
+    for i in range(6, -1, -1):  # ດຶງຂໍ້ມູນຍ້ອນຫຼັງ 7 ວັນ
+        date = today - timedelta(days=i)
+        daily_total = Sale.objects.filter(sale_date__date=date).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        sales_labels.append(date.strftime('%d/%m')) # ວັນທີ/ເດືອນ
+        sales_data.append(float(daily_total))
 
     context = {
         "total_sales": total_sales,
-        "total_orders": total_orders,  # ສົ່ງໄປຫາ {{ total_orders }}
-        "total_products": total_products,  # ສົ່ງໄປຫາ {{ total_products }}
-        "total_claims": total_claims,  # ສົ່ງໄປຫາ {{ total_claims }}
-        "recent_sales": Sale.objects.all().order_by("-sale_date")[:5],
-        "low_stock_products": Product.objects.filter(qty__lt=5).order_by("qty"),
+        "total_orders": total_orders,
+        "total_products": total_products,
+        "total_claims": total_claims,
+        "recent_sales": Sale.objects.all().order_by("-sale_id")[:5],
+        "low_stock_products": Product.objects.filter(qty__lt=5).order_by("qty")[:5],
+        "sales_labels": sales_labels,
+        "sales_data": sales_data,
     }
     return render(request, "store/dashboard.html", context)
 
@@ -387,32 +400,30 @@ def add_product(request):
 @login_required(login_url="login")
 def add_claim(request):
     if request.method == "POST":
-        # ຮັບຄ່າຈາກຟອມ
         sale_detail_id = request.POST.get("sale_detail_id")
         symptom = request.POST.get("symptom")
-        status = request.POST.get("status")
+        status = request.POST.get("status", "ລໍຖ້າກວດສອບ") # ຕັ້ງຄ່າ Default ໄວ້ເລີຍ
 
-        # ສ້າງລະຫັດເຄມແບບສຸ່ມ ເຊັ່ນ CLM1024
+        # 1. ດຶງຂໍ້ມູນ SaleDetail ມາເຊັກກ່ອນ
+        sale_detail = get_object_or_404(SaleDetail, pk=sale_detail_id)
+
+        # 2. [Logic ເພີ່ມໃໝ່] ກວດສອບປະກັນສິນຄ້າ
+        today = timezone.now().date()
+        if sale_detail.warranty_end and sale_detail.warranty_end < today:
+            messages.error(request, f"ບໍ່ສາມາດເຄມໄດ້! ສິນຄ້ານີ້ໝົດປະກັນແລ້ວເມື່ອວັນທີ {sale_detail.warranty_end.strftime('%d/%m/%Y')}")
+            return redirect("add_claim")
+
+        # 3. ດຶງຂໍ້ມູນພະນັກງານທີ່ Login ຢູ່ (ຄືກັບທີ່ Lucky ເຮັດໃນ checkout)
+        emp = Employee.objects.filter(emp_name=request.user.username).first()
+        
+        if not emp:
+            # ຖ້າບໍ່ມີໃນ Employee Model ໃຫ້ດຶງ Admin ຄົນທຳອິດມາແທນເພື່ອປ້ອງກັນ Error
+            emp = Employee.objects.first()
+
+        # 4. ສ້າງລະຫັດເຄມ
         claim_id = f"CLM{int(timezone.now().timestamp())}"
 
         try:
-            # ດຶງຂໍ້ມູນການຂາຍທີ່ລູກຄ້າເອົາມາເຄມ
-            from .models import (
-                SaleDetail,
-                Employee,
-                Claim,
-            )  # Import model ຖ້າຍັງບໍ່ໄດ້ import
-
-            sale_detail = get_object_or_404(SaleDetail, pk=sale_detail_id)
-
-            # ສົມມຸດວ່າດຶງພະນັກງານຄົນທຳອິດມາເປັນຜູ້ຮັບເຄມ (ສຳລັບ Mock Data)
-            emp = Employee.objects.first()
-
-            if not emp:
-                messages.error(request, "ກະລຸນາເພີ່ມຂໍ້ມູນພະນັກງານ (Employee) ໃນ Admin ກ່ອນ!")
-                return redirect("add_claim")
-
-            # ບັນທຶກລົງຖານຂໍ້ມູນຂອງທ່ານ
             Claim.objects.create(
                 claim_id=claim_id,
                 sale_detail=sale_detail,
@@ -420,17 +431,22 @@ def add_claim(request):
                 symptom=symptom,
                 status=status,
             )
-            messages.success(request, "ບັນທຶກລາຍການເຄມສຳເລັດແລ້ວ!")
+            messages.success(request, f"ບັນທຶກການເຄມ {claim_id} ສຳເລັດແລ້ວ! (ຍັງເຫຼືອປະກັນຮອດ: {sale_detail.warranty_end})")
             return redirect("claim_list")
 
         except Exception as e:
             messages.error(request, f"ເກີດຂໍ້ຜິດພາດ: {str(e)}")
             return redirect("add_claim")
 
-    # ສຳລັບສະແດງໜ້າຟອມ ໃຫ້ດຶງເອົາສະເພາະລາຍການທີ່ເຄີຍ "ຂາຍແລ້ວ" ມາໃຫ້ເລືອກເຄມ
+    # --- ສ່ວນສະແດງໜ້າຟອມ (GET Request) ---
+    # ດຶງສະເພາະລາຍການທີ່ "ຍັງບໍ່ໝົດປະກັນ" ມາໃຫ້ເລືອກ (ເພື່ອຄວາມສະດວກຂອງ User)
     from .models import SaleDetail
-
-    sale_details = SaleDetail.objects.all().order_by("-sale__sale_date")
+    today = timezone.now().date()
+    
+    # ດຶງສິນຄ້າທີ່ຂາຍແລ້ວ ແລະ ວັນທີໝົດປະກັນ ຍັງຫຼາຍກວ່າ ຫຼື ເທົ່າກັບ ມື້ນີ້
+    sale_details = SaleDetail.objects.filter(
+        Q(warranty_end__gte=today) | Q(warranty_end__isnull=True)
+    ).order_by("-sale__sale_date")
 
     return render(request, "store/add_claim.html", {"sale_details": sale_details})
 
@@ -707,7 +723,11 @@ def employee_edit(request, pk):
     if request.method == 'POST':
         form = EmployeeForm(request.POST, instance=employee)
         if form.is_valid():
-            form.save()
+            emp_data = form.save(commit=False)
+            
+            emp_data.password = form.cleaned_data.get('password')
+            emp_data.save()
+            
             messages.success(request, f'ແກ້ໄຂຂໍ້ມູນ {employee.emp_name} ສຳເລັດແລ້ວ!')
             return redirect('employee_list')
     else:
@@ -821,7 +841,8 @@ def all_reports(request):
 
     # --- 5.2 ລາຍງານການຂາຍ (Sales) ---
     if report_type == 'sales':
-        sales = Sale.objects.all().order_by("-sale_date")
+        sales = Sale.objects.all()
+        latest_sales = Sale.objects.all().order_by('-sale_date')[:10]
         
         # Logic ການກັ່ນຕອງ: ເລືອກເດືອນ > ກອກວັນທີ > ເດືອນປັດຈຸບັນ
         if selected_month:
@@ -879,3 +900,20 @@ def create_sale(request):
             # ... ຂໍ້ມູນອື່ນໆ ...
         )
         new_sale.save()
+        
+def sale_detail(request, pk):
+    sale = get_object_or_404(Sale, sale_id=pk)
+    details = SaleDetail.objects.filter(sale=sale)
+    
+    # ເພີ່ມ Logic ອັດຕາແລກປ່ຽນ (ເພື່ອໃຫ້ໜ້າ Detail ເບິ່ງຄືໜ້າ Invoice)
+    ex_thb = 750
+    ex_usd = 21500
+    
+    context = {
+        'sale': sale,
+        'details': details,
+        'total_thb': sale.total_amount / ex_thb,
+        'total_usd': sale.total_amount / ex_usd,
+        'shop': ShopInfo.objects.first(),
+    }
+    return render(request, 'store/sale_detail.html', context)
