@@ -37,4 +37,8 @@ urlpatterns = [
     path('category/edit/<str:pk>/', views.edit_category, name='edit_category'),
     path('brand/edit/<str:pk>/', views.edit_brand, name='edit_brand'),
     path('unit/edit/<str:pk>/', views.edit_unit, name='edit_unit'),
+    path('employee/edit/<str:pk>/', views.employee_edit, name='employee_edit'),
+    path('customers/', views.customer_list, name='customer_list'),
+    path('customers/edit/<str:cus_id>/', views.edit_customer, name='edit_customer'),
+    path('customers/delete/<str:cus_id>/', views.delete_customer, name='delete_customer'),
 ]
