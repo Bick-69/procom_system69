@@ -24,8 +24,36 @@
                 <hr>
                 <p class="mb-1 text-muted small">ພະນັກງານຂາຍ:</p>
                 <p class="fw-bold">{{ sale.emp.emp_name }}</p>
+                
+                <hr>
+                <p class="mb-1 text-muted small">ສະຖານະປະຈຸບັນ:</p>
+                <div class="mb-3">
+                    {% if sale.status == 'Paid' %}
+                        <span class="badge bg-success rounded-pill px-3">ຊຳລະແລ້ວ</span>
+                    {% elif sale.status == 'Unpaid' or sale.status == 'Quotation' %}
+                        <span class="badge bg-warning text-dark rounded-pill px-3">ຄ້າງຊຳລະ / ໃບສະເໜີລາຄາ</span>
+                    {% else %}
+                        <span class="badge bg-secondary rounded-pill px-3">{{ sale.status }}</span>
+                    {% endif %}
+                </div>
+
+                {% if sale.status == 'Unpaid' or sale.status == 'Quotation' %}
+                <div class="d-grid gap-2">
+                    <a href="{% url 'update_sale_status' sale.sale_id 'Paid' %}" 
+                       class="btn btn-success btn-sm rounded-3" 
+                       onclick="return confirm('ຢືນຢັນການຮັບເງິນ?')">
+                       <i class="bi bi-check-circle me-1"></i> ຊຳລະເງິນແລ້ວ
+                    </a>
+                    <a href="{% url 'update_sale_status' sale.sale_id 'Cancelled' %}" 
+                       class="btn btn-outline-danger btn-sm rounded-3"
+                       onclick="return confirm('ຢືນຢັນການຍົກເລີກບິນ ແລະ ຄືນສະຕັອກ?')">
+                       <i class="bi bi-x-circle me-1"></i> ຍົກເລີກບິນນີ້
+                    </a>
+                </div>
+                {% endif %}
             </div>
-        </div>
+            
+            </div>
 
         <div class="col-md-8">
             <div class="card border-0 shadow-sm rounded-4 p-4">

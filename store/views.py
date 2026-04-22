@@ -917,3 +917,27 @@ def sale_detail(request, pk):
         'shop': ShopInfo.objects.first(),
     }
     return render(request, 'store/sale_detail.html', context)
+
+def update_sale_status(request, sale_id, new_status):
+    sale = get_object_or_404(Sale, sale_id=sale_id)
+    
+    if new_status == 'Paid':
+        sale.status = 'Paid'
+        sale.save()
+        messages.success(request, f"ບິນ {sale_id} ຊຳລະເງິນສຳເລັດແລ້ວ!")
+        
+    elif new_status == 'Cancelled':
+        # Logic: ຄືນສິນຄ້າເຂົ້າ Stock ເມື່ອຍົກເລີກການຂາຍ
+        sale_items = SaleDetail.objects.filter(sale=sale)
+        for item in sale_items:
+            product = item.pro
+            product.qty += item.qty  # ບວກຈຳນວນຄືນເຂົ້າສາງ
+            product.save()
+        
+        # ປ່ຽນສະຖານະ ຫຼື ລຶບ (ໃນທີ່ນີ້ແນະນຳໃຫ້ປ່ຽນສະຖານະເພື່ອເກັບປະຫວັດ)
+        sale.status = 'Unpaid' # ຫຼື ຖ້າ Lucky ມີ choice 'Cancelled' ກໍໃຊ້ໂຕນັ້ນ
+        sale.save()
+        messages.warning(request, f"ຍົກເລີກບິນ {sale_id} ແລະ ຄືນສິນຄ້າເຂົ້າສາງແລ້ວ.")
+
+    # ກັບໄປໜ້າລາຍງານ ຫຼື ໜ້າທີ່ສົ່ງມາ
+    return redirect('all_reports')
